@@ -1,0 +1,24 @@
+{
+  "name": "job-matching-server",
+  "version": "1.0.0",
+  "description": "GraphQL backend server for job matching application",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": ["graphql", "redis", "express"],
+  "author": "404 Group Not Found",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "express-graphql": "^0.12.0",
+    "graphql": "^16.8.1",
+    "redis": "^4.6.10",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
+
