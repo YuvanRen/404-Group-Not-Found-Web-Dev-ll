@@ -20,6 +20,7 @@ const schema = buildSchema(`
     location: String
     createdAt: String!
     active: Boolean!
+    updatedAt: String
   }
 
   type AuthPayload {
@@ -49,10 +50,33 @@ const schema = buildSchema(`
     location: String
   }
 
+  input JobUpdateInput {
+    title: String
+    description: String
+    field: String
+    skills: [String!]
+    type: String
+    location: String
+    active: Boolean
+  }
+    input JobUpdateInput {
+    title: String
+    description: String
+    field: String
+    skills: [String!]
+    type: String
+    location: String
+    active: Boolean
+  }
+  
   input JobFilters {
     type: String
     field: String
     employerId: ID
+    skills: [String!]
+    location: String
+    active: Boolean
+    searchTerm: String
   }
 
   type Query {
@@ -65,6 +89,8 @@ const schema = buildSchema(`
     signup(input: UserInput!): AuthPayload!
     login(input: LoginInput!): AuthPayload!
     createJob(input: JobInput!): Job!
+    updateJob(id: ID!, input: JobUpdateInput!): Job!
+    deleteJob(id: ID!): Job!
   }
 `);
 
