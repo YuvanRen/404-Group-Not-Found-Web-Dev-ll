@@ -57,8 +57,6 @@ function Signup() {
       return;
     }
     
-    /* 
-    // Original signup code 
     setLoading(true);
 
     try {
@@ -92,7 +90,6 @@ function Signup() {
     } finally {
       setLoading(false);
     }
-    */
   };
 
   return (
