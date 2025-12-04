@@ -1,4 +1,4 @@
-const { buildSchema } = require('graphql');
+import { buildSchema } from 'graphql';
 
 const schema = buildSchema(`
   type User {
@@ -94,5 +94,5 @@ const schema = buildSchema(`
   }
 `);
 
-module.exports = schema;
+export default schema;
 

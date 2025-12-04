@@ -1,4 +1,4 @@
-const redis = require('redis');
+import redis from 'redis';
 
 // Create Redis client
 const redisClient = redis.createClient({
@@ -42,5 +42,4 @@ redisClient.on('ready', () => {
 })();
 
 // Export the Redis client for use in other modules
-module.exports = redisClient;
-
+export default redisClient;

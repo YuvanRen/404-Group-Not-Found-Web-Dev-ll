@@ -1,8 +1,8 @@
-const express = require('express');
-const { graphqlHTTP } = require('express-graphql');
-const cors = require('cors');
-const schema = require('./graphql/schema');
-const resolvers = require('./graphql/resolvers');
+import express from 'express';
+import cors from 'cors';
+import { graphqlHTTP } from 'express-graphql';
+import schema from '../graphql/schema.js';
+import resolvers from '../graphql/resolvers.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
