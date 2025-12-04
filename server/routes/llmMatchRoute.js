@@ -1,4 +1,4 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
 
 // Placeholder for LLM matching route
@@ -8,5 +8,5 @@ router.post('/match', async (req, res) => {
   res.json({ message: 'LLM matching route - to be implemented' });
 });
 
-module.exports = router;
+export default router;
 

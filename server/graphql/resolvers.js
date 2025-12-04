@@ -91,25 +91,33 @@ const resolvers = {
       };
     },
     
-    // TODO: Implement createJob mutation when job data layer is ready
     createJob: async (_, { input }) => {
-      // TODO: Uncomment and implement when jobData.createJob is ready
-      // Verify employer exists
-      // const employer = await userData.getUserById(input.employerId);
-      // if (!employer) {
-      //   throw new Error('Employer not found');
-      // }
-      // 
-      // if (employer.userType !== 'employer') {
-      //   throw new Error('User is not an employer');
-      // }
-      // 
-      // // Create job
-      // const job = await jobData.createJob(input);
-      // 
-      // return job;
+      const employer = await userData.getUserById(input.employerId);
+      if (!employer) {
+        throw new Error('Employer not found');
+      }
       
-      throw new Error('Job creation not implemented yet. Please implement server/data/jobs.js first.');
+      if (employer.userType !== 'employer') {
+        throw new Error('User is not an employer');
+      }
+      const job = await jobData.createJob(input);
+      return job;
+    },
+    updateJob: async (_, { id, input }) => {
+      const existingJob = await jobData.getJobById(id);
+      if (!existingJob) {
+        throw new Error('Job not found');
+      }
+      const updatedJob = await jobData.updateJob(id, input);
+      return updatedJob;
+    },
+    deleteJob: async (_, { id }) => {
+      const existingJob = await jobData.getJobById(id);
+      if (!existingJob) {
+        throw new Error('Job not found');
+      }
+      const deletedJob = await jobData.deleteJob(id);
+      return deletedJob;
     },
   },
 };

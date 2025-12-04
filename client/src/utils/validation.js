@@ -87,7 +87,7 @@ export const validateJobLocation = (location) => {
 };
 
 export const validateJobType = (type) => {
-  const validTypes = ['full-time', 'part-time', 'internship'];
+  const validTypes = ['full-time', 'part-time', 'contract','internship'];
   if (!type) {
     return 'Job type is required';
   }

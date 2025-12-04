@@ -44,3 +44,29 @@ export const GET_JOB = `
   }
 `;
 
+export const UPDATE_JOB = `
+  mutation UpdateJob($id: ID!, $input: JobUpdateInput!) {
+    updateJob(id: $id, input: $input) {
+      id
+      employerId
+      title
+      description
+      field
+      skills
+      type
+      location
+      createdAt
+      active
+      updatedAt
+    }
+  }
+`;
+
+export const DELETE_JOB = `
+  mutation DeleteJob($id: ID!) {
+    deleteJob(id: $id) {
+      id
+      title
+    }
+  }
+`;

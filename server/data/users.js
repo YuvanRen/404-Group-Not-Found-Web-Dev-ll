@@ -1,5 +1,5 @@
-const redisClient = require('../config/redisConnection');
-const crypto = require('crypto');
+import redisClient from "../config/redisConnection";
+import crypto from "crypto";
 
 /**
  * Create a new user
@@ -139,11 +139,10 @@ async function validateLogin(email, password) {
   delete userWithoutPassword.passwordHash;
   return userWithoutPassword;
 }
-
-module.exports = {
+ 
+export {
   createUser,
   getUserById,
   getUserByEmail,
-  validateLogin,
+  validateLogin
 };
-
