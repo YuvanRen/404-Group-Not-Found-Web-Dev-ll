@@ -1,5 +1,5 @@
-import redisClient from "../config/redisConnection";
-import crypto from "crypto";
+import { isOpen, connect, ping, set, sAdd, get } from '../config/redisConnection';
+import { randomUUID, createHash } from 'crypto';
 
 /**
  * Create a new user
@@ -20,19 +20,19 @@ async function createUser(userData) {
     }
     
     // Ensure Redis connection
-    if (!redisClient.isOpen) {
+    if (!isOpen) {
       console.log('Redis not open, connecting...');
-      await redisClient.connect();
+      await connect();
     }
     
     // Test Redis connection
-    await redisClient.ping();
+    await ping();
     
     // Generate unique user ID
-    const userId = `user:${crypto.randomUUID()}`;
+    const userId = `user:${randomUUID()}`;
     
     // Hash password (simple hash for now, should use bcrypt in production)
-    const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+    const passwordHash = createHash('sha256').update(password).digest('hex');
     
     const user = {
       id: userId,
@@ -44,16 +44,16 @@ async function createUser(userData) {
     };
     
     // Store user data in Redis
-    const setResult = await redisClient.set(userId, JSON.stringify(user));
+    const setResult = await set(userId, JSON.stringify(user));
     if (setResult !== 'OK') {
       throw new Error('Failed to store user data in Redis');
     }
     
     // Also store email -> userId mapping for quick lookups
-    await redisClient.set(`email:${user.email}`, userId);
+    await set(`email:${user.email}`, userId);
     
     // Add to users set for easy listing
-    await redisClient.sAdd('users:all', userId);
+    await sAdd('users:all', userId);
     
     console.log('User created successfully:', userId);
     return user;
@@ -71,11 +71,11 @@ async function createUser(userData) {
 async function getUserById(userId) {
   try {
     // Check Redis connection
-    if (!redisClient.isOpen) {
-      await redisClient.connect();
+    if (!isOpen) {
+      await connect();
     }
     
-    const userData = await redisClient.get(userId);
+    const userData = await get(userId);
     
     if (!userData) {
       return null;
@@ -96,12 +96,12 @@ async function getUserById(userId) {
 async function getUserByEmail(email) {
   try {
     // Check Redis connection
-    if (!redisClient.isOpen) {
-      await redisClient.connect();
+    if (!isOpen) {
+      await connect();
     }
     
     const normalizedEmail = email.trim().toLowerCase();
-    const userId = await redisClient.get(`email:${normalizedEmail}`);
+    const userId = await get(`email:${normalizedEmail}`);
     
     if (!userId) {
       return null;
@@ -128,7 +128,7 @@ async function validateLogin(email, password) {
   }
   
   // Hash provided password and compare
-  const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+  const passwordHash = createHash('sha256').update(password).digest('hex');
   
   if (user.passwordHash !== passwordHash) {
     return null;
@@ -139,8 +139,8 @@ async function validateLogin(email, password) {
   delete userWithoutPassword.passwordHash;
   return userWithoutPassword;
 }
- 
-export {
+
+export default {
   createUser,
   getUserById,
   getUserByEmail,
