@@ -5,6 +5,24 @@ import './Landing.css';
 function Landing() {
   const navigate = useNavigate();
 
+  const handleTestDashboard = (userType) => {
+    // Create mock user data for testing
+    const mockUser = {
+      id: userType === 'employer' ? 'emp-001' : 'seeker-001',
+      name: userType === 'employer' ? 'Test Employer' : 'Test Job Seeker',
+      email: userType === 'employer' ? 'employer@test.com' : 'seeker@test.com',
+      userType: userType,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Store in localStorage to simulate login
+    localStorage.setItem('authToken', 'test-token-' + userType);
+    localStorage.setItem('user', JSON.stringify(mockUser));
+
+    // Navigate to dashboard
+    navigate('/dashboard');
+  };
+
   return (
     <div className="landing">
       <div className="landing-hero">
@@ -25,6 +43,23 @@ function Landing() {
               onClick={() => navigate('/login')}
             >
               Sign In
+            </button>
+          </div>
+
+          {/* Test Dashboard Buttons */}
+          <div className="test-buttons">
+            <p className="test-label">Test Dashboards:</p>
+            <button
+              className="btn btn-test btn-test-seeker"
+              onClick={() => handleTestDashboard('jobseeker')}
+            >
+              Test Job Seeker Dashboard
+            </button>
+            <button
+              className="btn btn-test btn-test-employer"
+              onClick={() => handleTestDashboard('employer')}
+            >
+              Test Employer Dashboard
             </button>
           </div>
         </div>

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../../graphql/client';
 import { GET_JOBS } from '../../graphql/queries';
-// TODO: Import CreateJobForm when job creation is implemented
-// import CreateJobForm from '../../components/CreateJobForm';
+import JobSeekerDashboard from '../../components/JobSeekerDashboard';
+import EmployerDashboard from '../../components/EmployerDashboard';
 import './Dashboard.css';
 
 function Dashboard() {
@@ -25,7 +25,8 @@ function Dashboard() {
       return;
     }
 
-    setUser(JSON.parse(userData));
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
     loadJobs();
   }, [navigate]);
 
@@ -45,10 +46,9 @@ function Dashboard() {
     }
   };
 
-  // TODO: Implement job creation handler when CreateJobForm is added
-  // const handleJobCreated = (newJob) => {
-  //   loadJobs(filters);
-  // };
+  const handleJobCreated = () => {
+    loadJobs(filters);
+  };
 
   const handleFilterChange = (e) => {
     const newFilters = {
@@ -65,7 +65,7 @@ function Dashboard() {
     navigate('/');
   };
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="dashboard">
         <div className="container">
@@ -75,21 +75,71 @@ function Dashboard() {
     );
   }
 
-  return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <div className="container">
-          <div className="header-content">
-            <h1>JobMatch Dashboard</h1>
-            <div className="header-actions">
-              <span className="user-info">Welcome, {user?.name}</span>
-              <button className="btn btn-secondary" onClick={handleLogout}>
-                Logout
-              </button>
-            </div>
-          </div>
+  // Render different dashboard based on user type
+  if (user.userType === 'employer') {
+    return (
+      <div className="dashboard">
+        <EmployerDashboard
+          user={user}
+          jobs={jobs}
+          loading={loading}
+          error={error}
+          onJobCreated={handleJobCreated}
+        />
+        <div className="dashboard-footer">
+          <button className="btn btn-secondary" onClick={handleLogout}>
+            Logout
+          </button>
         </div>
       </div>
+    );
+  }
+
+  // Job Seeker Dashboard
+  return (
+    <div className="dashboard">
+      <JobSeekerDashboard
+        user={user}
+        jobs={jobs}
+        filters={filters}
+        loading={loading}
+        error={error}
+        onFilterChange={handleFilterChange}
+      />
+      <div className="dashboard-footer">
+        <button className="btn btn-secondary" onClick={handleLogout}>
+          Logout
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default Dashboard;
+/*
+
+
+
+
+  // Render different dashboard based on user type
+  if (user.userType === 'employer') {
+    return (
+      <div className="dashboard">
+        <EmployerDashboard
+          user={user}
+          jobs={jobs}
+          loading={loading}
+          error={error}
+          onJobCreated={handleJobCreated}
+        />
+        <div className="dashboard-footer">
+          <button className="btn btn-secondary" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
+      </div>
+    );
+  }
 
       <div className="container">
         <div className="dashboard-content">
@@ -133,7 +183,8 @@ function Dashboard() {
                   {user?.userType === 'employer' && (
                     <CreateJobForm onJobCreated={handleJobCreated} employerId={user?.id} />
                   )}
-              */}
+              */
+              /*
             </div>
             
             {error && <div className="error-message">{error}</div>}
@@ -172,6 +223,4 @@ function Dashboard() {
     </div>
   );
 }
-
-export default Dashboard;
-
+*/

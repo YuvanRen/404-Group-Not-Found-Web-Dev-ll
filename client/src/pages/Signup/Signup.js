@@ -55,7 +55,7 @@ function Signup() {
     // Validate form before submitting
     if (!validateForm()) {
       return;
-      }
+    }
     
     /* 
     // Original signup code 
