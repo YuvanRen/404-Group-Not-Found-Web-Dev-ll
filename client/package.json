@@ -1,8 +1,17 @@
 {
   "name": "job-matching-client",
   "version": "1.0.0",
-  "description": "React frontend for job matching application",
   "private": true,
+  "description": "React frontend for job matching application",
+  "license": "ISC",
+  "author": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -11,12 +20,6 @@
     "graphql": "^16.8.1",
     "graphql-request": "^6.1.0",
     "axios": "^1.6.2"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
@@ -37,4 +40,3 @@
   },
   "proxy": "http://localhost:4000"
 }
-

@@ -53,9 +53,6 @@ function Login() {
       return;
     }
     
-    // TODO: Login functionality 
-    /* 
-    // Original login code 
     setLoading(true);
 
     try {
@@ -89,7 +86,6 @@ function Login() {
     } finally {
       setLoading(false);
     }
-    */
   };
 
   return (
