@@ -3,20 +3,22 @@
 **Group Name:** 404 Group Not Found
 
 **Group Members:**
-- James Barbi 
-- James Kaddiss
-- Neel Kulkarni 
+
+- James Barbi
+- James Kaddissi
+- Neel Kulkarni
 - Yuvan Rengifo
-- Shantel Alvarez
 
 ## Technologies
 
 ### Course Technologies
+
 - **React** - Frontend framework
 - **Redis** - In-memory database for fast data storage and retrieval
 - **GraphQL** - API interface for efficient data queries and real-time updates
 
 ### Independent Technologies
+
 - **Docker** - Containerization for consistent runtime behavior
 - **AWS** - Cloud deployment platform
 - **LLM Implementation** - AI-powered resume matching and job recommendations
@@ -58,21 +60,24 @@
 │   │   └── index.css               
 │   └── package.json                # Frontend dependencies
 │
-├── server/                          # GraphQL backend server
+├── server/                         # GraphQL backend server
 │   ├── config/
 │   │   └── redisConnection.js    
 │   ├── data/                       # Data access layer
 │   │   ├── users.js               
 │   │   └── jobs.js               
 │   ├── graphql/                    # GraphQL schema and resolvers
-│   │   ├── schema.js              
-│   │   └── resolvers.js           
+│   │   ├── resolvers.js              
+│   │   └── schema.js
+│   ├── middleware/                 # Middleware routes              
+│   │   └── auth.js
 │   ├── routes/                     # Express routes
-│   │   └── llmMatchRoute.js       # LLM matching route (placeholder)
+|   |   ├── auth.js
+│   │   └── llmMatchRoute.js        # LLM matching route (placeholder)
 │   ├── index.js                    
 │   └── package.json               
 │
-├── docker/                          # Docker configuration
+├── docker/                         # Docker configuration
 │   ├── clientDockerfile         
 │   ├── serverDockerfile           
 │   └── dockerCompose.yml          
@@ -85,6 +90,7 @@
 ## Getting Started
 
 ### Prerequisites
+
 - Docker and Docker Compose installed
 - Node.js 18+ (for local development)
 
@@ -93,15 +99,17 @@
 #### Option 1: Using Docker (Recommended)
 
 1. **Navigate to the project root directory**
+
    ```bash
    cd 404-Group-Not-Found-Web-Dev-ll
    ```
 
 2. **Start all services with Docker Compose**
+
    ```bash
    docker-compose -f docker/dockerCompose.yml up --build
    ```
-   
+
    This will:
    - Build Docker images for client and server
    - Start Redis container
@@ -109,11 +117,13 @@
    - Start the React client on port 3000
 
 3. **Access the application**
+
    - Frontend: http://localhost:3000
    - GraphQL API: http://localhost:4000/graphql
    - GraphiQL Interface: http://localhost:4000/graphql (in development mode)
 
 4. **Stop the application**
+
    ```bash
    docker-compose -f docker/dockerCompose.yml down
    ```
@@ -124,25 +134,29 @@
    - Make sure Redis is installed and running on port 6379
 
 2. **Set up the Backend**
+
    ```bash
    cd server
    npm install --legacy-peer-deps
    npm start
    ```
+
    The server will run on http://localhost:4000
 
 3. **Set up the Frontend** (in a new terminal)
+
    ```bash
    cd client
    npm install
    npm start
    ```
-   The React app will open at http://localhost:3000
 
+   The React app will open at http://localhost:3000
 
 ## API Endpoints
 
 ### GraphQL Endpoint
+
 - **URL:** `http://localhost:4000/graphql`
 - **Method:** POST
 - **GraphiQL:** Available at the same URL in development mode
@@ -150,6 +164,7 @@
 ### Example Queries
 
 #### Signup
+
 ```graphql
 mutation {
   signup(input: {
@@ -170,6 +185,7 @@ mutation {
 ```
 
 #### Login
+
 ```graphql
 mutation {
   login(input: {
@@ -188,6 +204,7 @@ mutation {
 ```
 
 #### Get Jobs
+
 ```graphql
 query {
   getJobs(filters: {
