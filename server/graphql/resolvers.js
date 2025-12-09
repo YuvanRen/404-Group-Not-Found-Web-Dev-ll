@@ -1,6 +1,7 @@
-const userData = require('../data/users');
-const jobData = require('../data/jobs');
-const crypto = require('crypto');
+import * as userData from "../data/users.js";
+import * as jobData from "../data/jobs.js";
+
+import crypto from "crypto";
 
 // Simple token generation 
 function generateToken(userId) {
@@ -121,6 +122,4 @@ const resolvers = {
     },
   },
 };
-
-module.exports = resolvers;
-
+export default resolvers;

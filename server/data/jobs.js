@@ -1,216 +1,134 @@
-// TODO: Implement job data layer functions
-// This module should handle all job-related database operations using Redis
-//
-// Required functions:
-// 1. createJob(jobData) - Create a new job posting
-//    - Input: { employerId, title, description, field, skills, type, location }
-//    - Should generate unique job ID (e.g., "job:uuid")
-//    - Store job data in Redis
-//    - Add to jobs sets for filtering (by type, field, employer)
-//    - Return the created job object
-//
-// 2. getJobs(filters) - Retrieve jobs with optional filters
-//    - Input: { type, field, employerId } (all optional)
-//    - Should query Redis sets based on filters
-//    - Return array of job objects
-//    - Sort by creation date (newest first)
-//
-// 3. getJobById(jobId) - Get a single job by ID
-//    - Input: jobId (string)
-//    - Return job object or null if not found
-//
-// Redis structure suggestions:
-// - Store jobs: redis.set("job:uuid", JSON.stringify(job))
-// - Jobs list: redis.sAdd("jobs:all", "job:uuid")
-// - By type: redis.sAdd("jobs:type:full-time", "job:uuid")
-// - By field: redis.sAdd("jobs:field:Software", "job:uuid")
-// - By employer: redis.sAdd("employer:user:uuid:jobs", "job:uuid")
-//
-// Example job object structure:
-// {
-//   id: "job:uuid",
-//   employerId: "user:uuid",
-//   title: "Software Engineer",
-//   description: "Job description...",
-//   field: "Software",
-//   skills: ["JavaScript", "React"],
-//   type: "full-time",
-//   location: "New York, NY",
-//   createdAt: "2024-01-01T00:00:00.000Z",
-//   active: true
-// }
+import { ObjectId } from "mongodb";
+import { jobs as jobsCollection } from "../config/mongoCollections.js";
 
-import redisClient from '../config/redisConnection.js';
-import { v4 as uuidv4 } from 'uuid';
-
-async function createJob(jobData) {
-  const jobId = `job:${uuidv4()}`;
+export async function createJob(data) {
+  const jobs = await jobsCollection();
 
   const job = {
-    id: jobId,
-    employerId: jobData.employerId,
-    title: jobData.title,
-    description: jobData.description,
-    field: jobData.field,
-    skills: jobData.skills,
-    type: jobData.type,
-    location: jobData.location,
-    createdAt: new Date().toISOString(),
-    active: true
+    employerId: new ObjectId(data.employerId),
+    title: data.title,
+    description: data.description,
+    field: data.field,
+    skills: data.skills || [],
+    type: data.type || "full-time",
+    location: data.location || "",
+    active: true,
+    createdAt: new Date().toISOString()
   };
 
-  await redisClient.set(jobId, JSON.stringify(job));
+  const result = await jobs.insertOne(job);
 
-  await redisClient.sAdd('jobs:all', jobId);
-  await redisClient.sAdd(`jobs:type:${job.type}`, jobId);
-  await redisClient.sAdd(`jobs:field:${job.field}`, jobId);
-  await redisClient.sAdd(`employer:${job.employerId}:jobs`, jobId);
-
-  return job;
+  return {
+    id: result.insertedId.toString(),
+    employerId: job.employerId.toString(),
+    ...job
+  };
 }
 
-async function getJobs(filters = {}) {
-  const {
-    type,
-    field,
-    employerId,
-    skills,
-    location,
-    active,
-    searchTerm
-  } = filters;
+export async function getJobById(id) {
+  const jobs = await jobsCollection();
+  const job = await jobs.findOne({ _id: new ObjectId(id) });
+  if (!job) return null;
 
-  let jobIds;
-
-  if (employerId) {
-    jobIds = await redisClient.sMembers(`employer:${employerId}:jobs`);
-  } else if (type && field) {
-    jobIds = await redisClient.sInter([
-      `jobs:type:${type}`,
-      `jobs:field:${field}`
-    ]);
-  } else if (type) {
-    jobIds = await redisClient.sMembers(`jobs:type:${type}`);
-  } else if (field) {
-    jobIds = await redisClient.sMembers(`jobs:field:${field}`);
-  } else {
-    jobIds = await redisClient.sMembers('jobs:all');
-  }
-
-  if (!jobIds || jobIds.length === 0) {
-    return [];
-  }
-
-  const jobs = [];
-  for (const jobId of jobIds) {
-    const jobJson = await redisClient.get(jobId);
-    if (jobJson) {
-      const job = JSON.parse(jobJson);
-      let shouldUse = true;
-      if (active !== undefined && job.active !== active) {
-        shouldUse = false;
-      }
-
-      if (skills && skills.length > 0) {
-        const matchesRequiredSkills = skills.every(skill =>
-          job.skills.some(jobSkill =>
-            jobSkill.toLowerCase().includes(skill.toLowerCase())
-          )
-        );
-        if (!matchesRequiredSkills) {
-          shouldUse = false;
-        }
-      }
-
-      if (location && job.location) {
-        if (!job.location.toLowerCase().includes(location.toLowerCase())) {
-          shouldUse = false;
-        }
-      }
-
-      if (searchTerm) {
-        const sTerm = searchTerm.toLowerCase();
-        const foundInTitle = job.title.toLowerCase().includes(sTerm);
-        const foundInDescription = job.description.toLowerCase().includes(sTerm);
-        if (!foundInTitle && !foundInDescription) {
-          shouldUse = false;
-        }
-      }
-
-      if (shouldUse) {
-        jobs.push(job);
-      }
-    }
-  }
-  jobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-  return jobs;
+  return {
+    id: job._id.toString(),
+    employerId: job.employerId.toString(),
+    title: job.title,
+    description: job.description,
+    field: job.field,
+    skills: job.skills,
+    type: job.type,
+    location: job.location,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+    active: job.active
+  };
 }
 
-async function getJobById(jobId) {
-  const jobs = await redisClient.get(jobId);
+export async function getJobs(filters = {}) {
+  const jobs = await jobsCollection();
+  const query = {};
 
-  if (!jobs) {
-    return null;
+  if (filters.type) query.type = filters.type;
+  if (filters.field) query.field = filters.field;
+  if (filters.employerId) query.employerId = new ObjectId(filters.employerId);
+  if (filters.active !== undefined) query.active = filters.active;
+  if (filters.location) query.location = { $regex: filters.location, $options: "i" };
+  if (filters.skills && filters.skills.length > 0) query.skills = { $all: filters.skills };
+
+  if (filters.searchTerm) {
+    const regex = new RegExp(filters.searchTerm, "i");
+    query.$or = [{ title: regex }, { description: regex }];
   }
 
-  return JSON.parse(jobs);
+  const result = await jobs.find(query).sort({ createdAt: -1 }).toArray();
+
+  return result.map(job => ({
+    id: job._id.toString(),
+    employerId: job.employerId.toString(),
+    title: job.title,
+    description: job.description,
+    field: job.field,
+    skills: job.skills,
+    type: job.type,
+    location: job.location,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+    active: job.active
+  }));
 }
 
-async function updateJob(jobId, updateData) {
-  const existingJob = await getJobById(jobId);
-  
-  if (!existingJob) {
-    throw new Error('Job not found');
-  }
-  
-  const didTypeChange = updateData.type && updateData.type !== existingJob.type;
-  const didFieldChange = updateData.field && updateData.field !== existingJob.field;
-  
-  if (didTypeChange) {
-    await redisClient.sRem(`jobs:type:${existingJob.type}`, jobId);
-    await redisClient.sAdd(`jobs:type:${updateData.type}`, jobId);
-  }
-  
-  if (didFieldChange) {
-    await redisClient.sRem(`jobs:field:${existingJob.field}`, jobId);
-    await redisClient.sAdd(`jobs:field:${updateData.field}`, jobId);
-  }
-  
-  const updatedJob = {
-    ...existingJob,
-    ...updateData,
-    id: jobId,
-    employerId: existingJob.employerId,
-    createdAt: existingJob.createdAt,
+export async function updateJob(id, data) {
+  const jobs = await jobsCollection();
+
+  const update = {
+    ...data,
     updatedAt: new Date().toISOString()
   };
-  await redisClient.set(jobId, JSON.stringify(updatedJob));
-  
-  return updatedJob;
+
+  if (update.employerId) update.employerId = new ObjectId(update.employerId);
+
+  const result = await jobs.findOneAndUpdate(
+    { _id: new ObjectId(id) },
+    { $set: update },
+    { returnDocument: "after" }
+  );
+
+  const job = result.value;
+  if (!job) throw new Error("Job not found");
+
+  return {
+    id: job._id.toString(),
+    employerId: job.employerId.toString(),
+    title: job.title,
+    description: job.description,
+    field: job.field,
+    skills: job.skills,
+    type: job.type,
+    location: job.location,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+    active: job.active
+  };
 }
 
-async function deleteJob(jobId) {
-  const job = await getJobById(jobId);
-  
-  if (!job) {
-    throw new Error('Job not found');
-  }
-  
-  await redisClient.sRem('jobs:all', jobId);
-  await redisClient.sRem(`jobs:type:${job.type}`, jobId);
-  await redisClient.sRem(`jobs:field:${job.field}`, jobId);
-  await redisClient.sRem(`employer:${job.employerId}:jobs`, jobId);
-  
-  await redisClient.del(jobId);
-  
-  return job;
-}
+export async function deleteJob(id) {
+  const jobs = await jobsCollection();
+  const result = await jobs.findOneAndDelete({ _id: new ObjectId(id) });
+  const job = result.value;
+  if (!job) throw new Error("Job not found");
 
-export {
-  createJob,
-  getJobs,
-  getJobById,
-  updateJob,
-  deleteJob
-};
+  return {
+    id: job._id.toString(),
+    employerId: job.employerId.toString(),
+    title: job.title,
+    description: job.description,
+    field: job.field,
+    skills: job.skills,
+    type: job.type,
+    location: job.location,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+    active: job.active
+  };
+}

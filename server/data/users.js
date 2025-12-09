@@ -1,148 +1,70 @@
-import redisClient from "../config/redisConnection";
 import crypto from "crypto";
+import { ObjectId } from "mongodb";
+import { users as usersCollection } from "../config/mongoCollections.js";
 
-/**
- * Create a new user
- * @param {Object} userData - User data object
- * @param {string} userData.email - User email
- * @param {string} userData.password - User password (will be hashed)
- * @param {string} userData.name - User name
- * @param {string} userData.userType - 'employer' or 'jobseeker'
- * @returns {Promise<Object>} Created user object
- */
-async function createUser(userData) {
-  try {
-    const { email, password, name, userType } = userData;
-    
-    // Validate required fields
-    if (!email || !password || !name) {
-      throw new Error('Email, password, and name are required');
-    }
-    
-    // Ensure Redis connection
-    if (!redisClient.isOpen) {
-      console.log('Redis not open, connecting...');
-      await redisClient.connect();
-    }
-    
-    // Test Redis connection
-    await redisClient.ping();
-    
-    // Generate unique user ID
-    const userId = `user:${crypto.randomUUID()}`;
-    
-    // Hash password (simple hash for now, should use bcrypt in production)
-    const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
-    
-    const user = {
-      id: userId,
-      email: email.trim().toLowerCase(),
-      passwordHash,
-      name: name.trim(),
-      userType: userType || 'jobseeker',
-      createdAt: new Date().toISOString(),
-    };
-    
-    // Store user data in Redis
-    const setResult = await redisClient.set(userId, JSON.stringify(user));
-    if (setResult !== 'OK') {
-      throw new Error('Failed to store user data in Redis');
-    }
-    
-    // Also store email -> userId mapping for quick lookups
-    await redisClient.set(`email:${user.email}`, userId);
-    
-    // Add to users set for easy listing
-    await redisClient.sAdd('users:all', userId);
-    
-    console.log('User created successfully:', userId);
-    return user;
-  } catch (error) {
-    console.error('Error creating user:', error);
-    throw new Error(`Failed to create user: ${error.message}`);
-  }
+export async function createUser(data) {
+  const { email, password, name, userType } = data;
+
+  const users = await usersCollection();
+  const normalizedEmail = email.trim().toLowerCase();
+  const existing = await users.findOne({ email: normalizedEmail });
+  if (existing) throw new Error("User with this email already exists");
+
+  const passwordHash = crypto.createHash("sha256").update(password).digest("hex");
+
+  const user = {
+    email: normalizedEmail,
+    passwordHash,
+    name: name.trim(),
+    userType,
+    createdAt: new Date().toISOString()
+  };
+
+  const result = await users.insertOne(user);
+
+  return {
+    id: result.insertedId.toString(),
+    ...user
+  };
 }
 
-/**
- * Get user by ID
- * @param {string} userId - User ID
- * @returns {Promise<Object|null>} User object or null if not found
- */
-async function getUserById(userId) {
-  try {
-    // Check Redis connection
-    if (!redisClient.isOpen) {
-      await redisClient.connect();
-    }
-    
-    const userData = await redisClient.get(userId);
-    
-    if (!userData) {
-      return null;
-    }
-    
-    return JSON.parse(userData);
-  } catch (error) {
-    console.error('Error getting user by ID:', error);
-    throw new Error(`Failed to retrieve user: ${error.message}`);
-  }
+export async function getUserById(id) {
+  const users = await usersCollection();
+  const user = await users.findOne({ _id: new ObjectId(id) });
+  if (!user) return null;
+
+  return {
+    id: user._id.toString(),
+    email: user.email,
+    name: user.name,
+    userType: user.userType,
+    createdAt: user.createdAt,
+    passwordHash: user.passwordHash
+  };
 }
 
-/**
- * Get user by email
- * @param {string} email - User email
- * @returns {Promise<Object|null>} User object or null if not found
- */
-async function getUserByEmail(email) {
-  try {
-    // Check Redis connection
-    if (!redisClient.isOpen) {
-      await redisClient.connect();
-    }
-    
-    const normalizedEmail = email.trim().toLowerCase();
-    const userId = await redisClient.get(`email:${normalizedEmail}`);
-    
-    if (!userId) {
-      return null;
-    }
-    
-    return getUserById(userId);
-  } catch (error) {
-    console.error('Error getting user by email:', error);
-    throw new Error(`Failed to retrieve user: ${error.message}`);
-  }
+export async function getUserByEmail(email) {
+  const users = await usersCollection();
+  const user = await users.findOne({ email: email.trim().toLowerCase() });
+  if (!user) return null;
+
+  return {
+    id: user._id.toString(),
+    email: user.email,
+    name: user.name,
+    userType: user.userType,
+    createdAt: user.createdAt,
+    passwordHash: user.passwordHash
+  };
 }
 
-/**
- * Validate login credentials
- * @param {string} email - User email
- * @param {string} password - User password
- * @returns {Promise<Object|null>} User object if valid, null otherwise
- */
-async function validateLogin(email, password) {
+export async function validateLogin(email, password) {
   const user = await getUserByEmail(email);
-  
-  if (!user) {
-    return null;
-  }
-  
-  // Hash provided password and compare
-  const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
-  
-  if (user.passwordHash !== passwordHash) {
-    return null;
-  }
-  
-  // Return user without password hash
-  const userWithoutPassword = { ...user };
-  delete userWithoutPassword.passwordHash;
-  return userWithoutPassword;
+  if (!user) return null;
+
+  const hash = crypto.createHash("sha256").update(password).digest("hex");
+  if (hash !== user.passwordHash) return null;
+
+  const { passwordHash, ...result } = user;
+  return result;
 }
- 
-export {
-  createUser,
-  getUserById,
-  getUserByEmail,
-  validateLogin
-};
