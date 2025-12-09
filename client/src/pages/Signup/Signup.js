@@ -55,10 +55,8 @@ function Signup() {
     // Validate form before submitting
     if (!validateForm()) {
       return;
-      }
+    }
     
-    /* 
-    // Original signup code 
     setLoading(true);
 
     try {
@@ -92,7 +90,6 @@ function Signup() {
     } finally {
       setLoading(false);
     }
-    */
   };
 
   return (

@@ -25,6 +25,61 @@
   display: flex;
   gap: 20px;
   justify-content: center;
+  margin-bottom: 40px;
+}
+
+.test-buttons {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.test-label {
+  font-size: 0.95rem;
+  opacity: 0.9;
+  margin-bottom: 15px;
+  font-weight: 500;
+}
+
+.test-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn-test {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  font-size: 0.95rem;
+  padding: 0.7rem 1.5rem;
+}
+
+.btn-test:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-color: white;
+  transform: scale(1.05);
+}
+
+.btn-test-seeker {
+  border-color: #4caf50;
+  background-color: rgba(76, 175, 80, 0.2);
+}
+
+.btn-test-seeker:hover {
+  background-color: rgba(76, 175, 80, 0.3);
+  border-color: #4caf50;
+}
+
+.btn-test-employer {
+  border-color: #ff9800;
+  background-color: rgba(255, 152, 0, 0.2);
+}
+
+.btn-test-employer:hover {
+  background-color: rgba(255, 152, 0, 0.3);
+  border-color: #ff9800;
 }
 
 .landing-features {
