@@ -36,13 +36,24 @@ function Login() {
 
   const validateForm = () => {
     const newErrors = {
-      email: validateEmail(formData.email),
-      password: validatePassword(formData.password),
+      email: '',
+      password: '',
     };
-    
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required.';
+    }
+
+    if (!formData.password.trim()) {
+      newErrors.password = 'Password is required.';
+    }
+
     setErrors(newErrors);
+
     return !newErrors.email && !newErrors.password;
   };
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
