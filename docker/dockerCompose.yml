@@ -26,12 +26,13 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - PORT=4000
+      - MONGO_SERVER_URL=mongodb+srv://jkaddiss_db_user:Qnmxo8lBn0K2aFLu@404groupcluster.nyjvmje.mongodb.net/?
+      - MONGO_DATABASE=404GroupCluster
     depends_on:
       redis:
         condition: service_healthy
     volumes:
       - ../server:/app
-      - /app/node_modules
 
   client:
     build:

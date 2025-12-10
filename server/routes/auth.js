@@ -1,6 +1,7 @@
 import express from 'express'
 import { createUser, validateLogin, } from '../data/users.js'
 
+import { authenticate } from '../middleware/auth.js'
 const router = express.Router()
 
 // Signup route

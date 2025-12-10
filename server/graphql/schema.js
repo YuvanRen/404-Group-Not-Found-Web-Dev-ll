@@ -59,15 +59,6 @@ const schema = buildSchema(`
     location: String
     active: Boolean
   }
-    input JobUpdateInput {
-    title: String
-    description: String
-    field: String
-    skills: [String!]
-    type: String
-    location: String
-    active: Boolean
-  }
   
   input JobFilters {
     type: String

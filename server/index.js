@@ -1,8 +1,8 @@
 import express, { json } from 'express';
 import { graphqlHTTP } from 'express-graphql';
 import cors from 'cors';
-import schema from './graphql/schema';
-import resolvers from './graphql/resolvers';
+import schema from './graphql/schema.js';
+import resolvers from './graphql/resolvers.js';
 import authRouter from './routes/auth.js';
 import { authenticate } from './middleware/auth.js';
 import session from 'express-session';
@@ -37,7 +37,7 @@ app.use(
 app.use('/auth', authRouter);
 
 // Protect everything below with authenticate
-app.use(authenticate);
+// app.use(authenticate); // this doesn't work cause we need routes even when not signed in
 
 // GraphQL endpoint
 app.use(

@@ -78,13 +78,12 @@ function Signup() {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
-      // Make error messages more user-friendly
-      if (errorMessage.includes('already exists')) {
-        errorMessage = 'An account with this email already exists. Please use a different email or try logging in.';
-      } else if (errorMessage.includes('email')) {
-        errorMessage = 'Please enter a valid email address.';
-      }
+      // // Make error messages more user-friendly
+      // if (errorMessage.includes('already exists')) {
+      //   errorMessage = 'An account with this email already exists. Please use a different email or try logging in.';
+      // } else if (errorMessage.includes('email')) {
+      //   errorMessage = 'Please enter a valid email address.';
+      // }
       
       setError(errorMessage);
     } finally {
