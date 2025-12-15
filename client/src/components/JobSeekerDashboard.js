@@ -1,11 +1,24 @@
 import React, { useState } from 'react';
+import {
+  presignResumeUpload,
+  uploadResumeToS3,
+  getResumeDownloadUrl,
+} from "../utils/resumeApi";
 import './JobSeekerDashboard.css';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 
-function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChange }) {
+function JobSeekerDashboard({
+  user,
+  jobs,
+  filters,
+  loading,
+  error,
+  onFilterChange,
+}) {
   const [resumeFile, setResumeFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
   const [matchedJobs, setMatchedJobs] = useState([]);
   const [matchingLoading, setMatchingLoading] = useState(false);
@@ -18,24 +31,35 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
     setApiKey(newApiKey);
     localStorage.setItem('googleAiApiKey', newApiKey);
   };
+  const [skillInput, setSkillInput] = useState('');
 
   const handleResumeChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type - only accept text files for now
-      if (!file.type.includes('text') && !file.name.endsWith('.txt')) {
-        setUploadMessage('Please upload a plain text (.txt) file. PDF parsing is not yet implemented.');
+      // Validate file type
+      const allowedTypes = new Set([
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ]);
+
+      const ext = file.name.toLowerCase().split(".").pop();
+      const allowedExt = new Set(["pdf", "doc", "docx"]);
+
+      if (!(allowedTypes.has(file.type) || allowedExt.has(ext))) {
+        setUploadMessage("Please upload a PDF, DOC, or DOCX file");
         return;
       }
 
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        setUploadMessage('File size must be less than 5MB');
+        setUploadMessage("File size must be less than 5MB");
         return;
       }
 
+
       setResumeFile(file);
-      setUploadMessage('');
+      setUploadMessage("");
     }
   };
 
@@ -91,33 +115,44 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
   const handleResumeUpload = async (e) => {
     e.preventDefault();
     if (!resumeFile) {
-      setUploadMessage('Please select a file');
+      setUploadMessage("Please select a file");
       return;
     }
 
     setUploading(true);
-    setMatchingError('');
-    
+    setUploadMessage("");
+
     try {
-      const fileContent = await resumeFile.text();
+      // 1: Get presign response
+      const presign = await presignResumeUpload(resumeFile);
+      console.log("PRESIGN RESPONSE: ", presign);
 
-      // Extract skills using LLM (mock implementation)
-      const skills = await extractSkillsFromResume(fileContent);
-      setExtractedSkills(skills);
+      // 2: Guard against undefined URL
+      if (!presign?.uploadUrl) {
+        throw new Error(
+          `No uploadUrl returned. Got: ${JSON.stringify(presign)}`
+        );
+      }
 
-      // Match jobs with extracted skills
-      const matched = matchJobsWithSkills(skills, jobs);
-      setMatchedJobs(matched);
+      // 3: Upload to S3 using returned URL
+      await uploadResumeToS3(
+        presign.uploadUrl,
+        resumeFile,
+        presign.contentType
+      );
 
-      setUploadMessage('Resume processed successfully!');
+      setUploadMessage("Resume uploaded successfully!");
+      setResumeFile(null);
 
       // Reset file input
       const fileInput = document.getElementById('resume-upload');
       if (fileInput) fileInput.value = '';
-
     } catch (err) {
-      setUploadMessage('Failed to process resume. Please try again.');
-      console.error('Resume processing error:', err);
+      console.error("Resume upload error: ", err);
+      setUploadMessage(
+        err?.message || "Failed to upload resume. Please try again."
+      );
+      console.error("Resume upload error:", err);
     } finally {
       setUploading(false);
     }
@@ -142,6 +177,80 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
     } finally {
       setMatchingLoading(false);
     }
+  };
+
+  const handleResumeView = async () => {
+    setViewing(true);
+    setUploadMessage("");
+
+    try {
+      const { downloadUrl } = await getResumeDownloadUrl();
+
+      if (!downloadUrl) {
+        throw new Error("No download URL returned");
+      }
+
+      const probeRes = await fetch(downloadUrl, { 
+        method: "GET", 
+        headers: { Range: "bytes=0-0" }, 
+        redirect: "follow"
+      });
+
+      if (!probeRes.ok) {
+        if (probeRes.status === 404) {
+          throw new Error("Resume not found on server. Try again later or upload a new resume.");
+        }
+        if (probeRes.status === 403) {
+          throw new Error("Access to resume denied. Try again later.");
+        }
+        throw new Error(`Failed to access resume (${probeRes.status})`);
+      }
+
+      // if resume exists, open it
+      window.open(downloadUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      console.error("Resume view error: ", err);
+      setUploadMessage(err?.message || "Failed to get resume download link.");
+    } finally {
+      setViewing(false);
+    }
+  };
+
+  const handleSkillAdd = (e) => {
+    if (e.key === 'Enter' && skillInput.trim()) {
+      e.preventDefault();
+      const skill = skillInput.trim();
+
+      if (!filters.skills.includes(skill)) {
+        onFilterChange({
+          target: {
+            name: 'skills',
+            value: [...filters.skills, skill]
+          }
+        });
+      }
+
+      setSkillInput('');
+    }
+  };
+
+  const handleSkillRemove = (skillToRemove) => {
+    onFilterChange({
+      target: {
+        name: 'skills',
+        value: filters.skills.filter(skill => skill !== skillToRemove)
+      }
+    });
+  };
+
+  const handleClearFilters = () => {
+    onFilterChange({
+      target: {
+        name: 'clearAll',
+        value: true
+      }
+    });
+    setSkillInput('');
   };
 
   return (
@@ -215,39 +324,50 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
             </div>
           </section>
 
-          {/* Resume Upload Section */}
+          {/* Resume Upload/View Section */}
           <section className="info-section">
             <h2>Resume</h2>
             <div className="resume-section">
-              <div className="demo-notice">
-                <p><strong>Note:</strong> Currently accepts plain text (.txt) files only. PDF parsing will be added later.</p>
-              </div>
 
               <form onSubmit={handleResumeUpload} className="resume-form">
                 <div className="file-input-group">
                   <label htmlFor="resume-upload" className="file-label">
                     <span className="upload-icon">📄</span>
-                    <span>Select Resume (Plain Text .txt file)</span>
+                    <span>Select Resume (PDF or DOC/DOCX)</span>
                   </label>
                   <input
                     type="file"
                     id="resume-upload"
-                    accept=".txt"
+                    accept=".pdf, .doc, .docx"
                     onChange={handleResumeChange}
                     className="file-input"
                   />
-                  {resumeFile && <p className="selected-file">{resumeFile.name}</p>}
+                  {resumeFile && (
+                    <p className="selected-file">{resumeFile.name}</p>
+                  )}
                 </div>
                 <button
                   type="submit"
                   className="btn btn-primary"
                   disabled={!resumeFile || uploading}
                 >
-                  {uploading ? 'Processing Resume...' : 'Upload & Analyze Resume'}
+                  {uploading ? "Uploading..." : "Upload Resume"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={handleResumeView}
+                  disabled={uploading || viewing}
+                >
+                  {viewing ? "Opening..." : "View / Download Resume"}
                 </button>
               </form>
               {uploadMessage && (
-                <div className={`message ${uploadMessage.includes('successfully') ? 'success' : 'error'}`}>
+                <div
+                  className={`message ${
+                    uploadMessage.includes("successfully") ? "success" : "error"
+                  }`}
+                >
                   {uploadMessage}
                 </div>
               )}
@@ -326,7 +446,22 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
 
           {/* Job Postings Section */}
           <section className="jobs-section">
-            <h2>Available Jobs</h2>
+            <div className="section-header">
+              <h2>Available Jobs</h2>
+              <button onClick={handleClearFilters} className="btn btn-outline btn-sm">
+                Clear Filters
+              </button>
+            </div>
+            <div className="search-container">
+              <input
+                type="text"
+                name="searchTerm"
+                value={filters.searchTerm || ''}
+                onChange={onFilterChange}
+                placeholder="Search job titles and descriptions..."
+                className="search-input"
+              />
+            </div>
 
             {/* Filters */}
             <div className="filters-container">
@@ -335,7 +470,7 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
                 <select
                   id="type"
                   name="type"
-                  value={filters.type}
+                  value={filters.type || ''}
                   onChange={onFilterChange}
                 >
                   <option value="">All Types</option>
@@ -351,10 +486,51 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
                   type="text"
                   id="field"
                   name="field"
-                  value={filters.field}
+                  value={filters.field || ''}
                   onChange={onFilterChange}
                   placeholder="e.g., Software, Marketing"
                 />
+              </div>
+
+              <div className="filter-group">
+                <label htmlFor="location">Location</label>
+                <input
+                  type="text"
+                  id="location"
+                  name="location"
+                  value={filters.location || ''}
+                  onChange={onFilterChange}
+                  placeholder="e.g., New York, Remote"
+                />
+              </div>
+
+              <div className="filter-group filter-group-skills">
+                <label htmlFor="skills">Skills (press Enter to add)</label>
+                <input
+                  type="text"
+                  id="skills"
+                  value={skillInput}
+                  onChange={(e) => setSkillInput(e.target.value)}
+                  onKeyDown={handleSkillAdd}
+                  placeholder="JavaScript, React..."
+                />
+                {filters.skills && filters.skills.length > 0 && (
+                  <div className="selected-skills">
+                    {filters.skills.map((skill, idx) => (
+                      <span key={idx} className="skill-chip">
+                        {skill}
+                        <button
+                          type="button"
+                          onClick={() => handleSkillRemove(skill)}
+                          className="skill-remove"
+                          aria-label="Remove skill"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -368,16 +544,21 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
               </div>
             ) : (
               <div className="jobs-list">
+                <div className="jobs-count">
+                  {jobs.length} {jobs.length === 1 ? 'job' : 'jobs'} found
+                </div>
                 {jobs.map((job) => (
                   <div key={job.id} className="job-card">
                     <div className="job-header">
                       <h3>{job.title}</h3>
-                      <button className="btn btn-outline btn-sm">Apply Now</button>
+                      <button className="btn btn-outline btn-sm">
+                        Apply Now
+                      </button>
                     </div>
                     <div className="job-meta">
                       <span className="job-type">{job.type}</span>
                       <span className="job-field">{job.field}</span>
-                      {job.location && <span className="job-location">{job.location}</span>}
+                      {job.location && <span className="job-location">📍 {job.location}</span>}
                     </div>
                     <p className="job-description">{job.description}</p>
                     {job.skills && job.skills.length > 0 && (

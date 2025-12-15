@@ -28,11 +28,13 @@ router.post('/login', async (req, res) => {
     }
 
     const user = await validateLogin(email, password)
+
     req.session.user = {
-      _id: user._id,
+      id: user.id,
       name: user.name,
       userType: user.userType
     }
+
     return res.json(user)
   } catch (e) {
     return res.status(401).json({ error: e.message})

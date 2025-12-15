@@ -68,3 +68,26 @@ export async function validateLogin(email, password) {
   const { passwordHash, ...result } = user;
   return result;
 }
+
+export async function setUserResume(userId, resume) {
+  const users = await usersCollection();
+
+  const result = await users.updateOne(
+    { _id: new ObjectId(userId) },
+    { $set: { resume } }
+  );
+
+  if (result.matchedCount === 0) throw new Error("User not found");
+  return resume;
+}
+
+export async function getUserResume(userId) {
+  const users = await usersCollection();
+
+  const user = await users.findOne(
+    { _id: new ObjectId(userId) },
+    { projection: { resume: 1 } }
+  );
+
+  return user?.resume || null;
+}

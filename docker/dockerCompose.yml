@@ -28,6 +28,10 @@ services:
       - PORT=4000
       - MONGO_SERVER_URL=mongodb+srv://jkaddiss_db_user:Qnmxo8lBn0K2aFLu@404groupcluster.nyjvmje.mongodb.net/?
       - MONGO_DATABASE=404GroupCluster
+      - AWS_REGION=us-east-2
+      - AWS_ACCESS_KEY_ID=AKIAWM5G4NSZK4GYIYWF
+      - AWS_SECRET_ACCESS_KEY=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
+      - S3_BUCKET_NAME=group-404-not-found-resume-bucket
     depends_on:
       redis:
         condition: service_healthy
