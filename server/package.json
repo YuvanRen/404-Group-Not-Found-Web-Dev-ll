@@ -16,12 +16,15 @@
   "author": "404 Group Not Found",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.948.0",
+    "@aws-sdk/s3-request-presigner": "^3.948.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "express-graphql": "^0.12.0",
     "express-session": "^1.17.3",
     "graphql": "^16.8.1",
     "mongodb": "^7.0.0",
+    "nanoid": "^5.1.6",
     "redis": "^4.6.10"
   },
   "devDependencies": {
