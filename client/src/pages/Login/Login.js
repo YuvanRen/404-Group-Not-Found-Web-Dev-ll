@@ -75,6 +75,24 @@ function Login() {
       localStorage.setItem('authToken', data.login.token);
       localStorage.setItem('user', JSON.stringify(data.login.user));
 
+      const API_BASE = process.env.REACT_APP_API_URL || "";
+      try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email: formData.email, password: formData.password }),
+        });
+
+        if (!res.ok) {
+          const text = await res.text().catch(() => res.statusText);
+          throw new Error(text || `REST login failed (${res.status})`);
+        }
+      } catch (e) {
+        console.warn('REST login to create session failed', e);
+        throw e; // propagate so we don't navigate without a session
+      }
+
       // Redirect to dashboard
       navigate('/dashboard');
     } catch (err) {
