@@ -1,11 +1,24 @@
 import React, { useState } from 'react';
+import {
+  presignResumeUpload,
+  uploadResumeToS3,
+  getResumeDownloadUrl,
+} from "../utils/resumeApi";
 import './JobSeekerDashboard.css';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 
-function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChange }) {
+function JobSeekerDashboard({
+  user,
+  jobs,
+  filters,
+  loading,
+  error,
+  onFilterChange,
+}) {
   const [resumeFile, setResumeFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
   const [matchedJobs, setMatchedJobs] = useState([]);
   const [matchingLoading, setMatchingLoading] = useState(false);
@@ -22,20 +35,30 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
   const handleResumeChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type - only accept text files for now
-      if (!file.type.includes('text') && !file.name.endsWith('.txt')) {
-        setUploadMessage('Please upload a plain text (.txt) file. PDF parsing is not yet implemented.');
+      // Validate file type
+      const allowedTypes = new Set([
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ]);
+
+      const ext = file.name.toLowerCase().split(".").pop();
+      const allowedExt = new Set(["pdf", "doc", "docx"]);
+
+      if (!(allowedTypes.has(file.type) || allowedExt.has(ext))) {
+        setUploadMessage("Please upload a PDF, DOC, or DOCX file");
         return;
       }
 
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        setUploadMessage('File size must be less than 5MB');
+        setUploadMessage("File size must be less than 5MB");
         return;
       }
 
+
       setResumeFile(file);
-      setUploadMessage('');
+      setUploadMessage("");
     }
   };
 
@@ -91,33 +114,44 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
   const handleResumeUpload = async (e) => {
     e.preventDefault();
     if (!resumeFile) {
-      setUploadMessage('Please select a file');
+      setUploadMessage("Please select a file");
       return;
     }
 
     setUploading(true);
-    setMatchingError('');
-    
+    setUploadMessage("");
+
     try {
-      const fileContent = await resumeFile.text();
+      // 1: Get presign response
+      const presign = await presignResumeUpload(resumeFile);
+      console.log("PRESIGN RESPONSE: ", presign);
 
-      // Extract skills using LLM (mock implementation)
-      const skills = await extractSkillsFromResume(fileContent);
-      setExtractedSkills(skills);
+      // 2: Guard against undefined URL
+      if (!presign?.uploadUrl) {
+        throw new Error(
+          `No uploadUrl returned. Got: ${JSON.stringify(presign)}`
+        );
+      }
 
-      // Match jobs with extracted skills
-      const matched = matchJobsWithSkills(skills, jobs);
-      setMatchedJobs(matched);
+      // 3: Upload to S3 using returned URL
+      await uploadResumeToS3(
+        presign.uploadUrl,
+        resumeFile,
+        presign.contentType
+      );
 
-      setUploadMessage('Resume processed successfully!');
+      setUploadMessage("Resume uploaded successfully!");
+      setResumeFile(null);
 
       // Reset file input
       const fileInput = document.getElementById('resume-upload');
       if (fileInput) fileInput.value = '';
-
     } catch (err) {
-      setUploadMessage('Failed to process resume. Please try again.');
-      console.error('Resume processing error:', err);
+      console.error("Resume upload error: ", err);
+      setUploadMessage(
+        err?.message || "Failed to upload resume. Please try again."
+      );
+      console.error("Resume upload error:", err);
     } finally {
       setUploading(false);
     }
@@ -141,6 +175,43 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
       console.error('Job matching error:', err);
     } finally {
       setMatchingLoading(false);
+    }
+  };
+
+  const handleResumeView = async () => {
+    setViewing(true);
+    setUploadMessage("");
+
+    try {
+      const { downloadUrl } = await getResumeDownloadUrl();
+
+      if (!downloadUrl) {
+        throw new Error("No download URL returned");
+      }
+
+      const probeRes = await fetch(downloadUrl, { 
+        method: "GET", 
+        headers: { Range: "bytes=0-0" }, 
+        redirect: "follow"
+      });
+
+      if (!probeRes.ok) {
+        if (probeRes.status === 404) {
+          throw new Error("Resume not found on server. Try again later or upload a new resume.");
+        }
+        if (probeRes.status === 403) {
+          throw new Error("Access to resume denied. Try again later.");
+        }
+        throw new Error(`Failed to access resume (${probeRes.status})`);
+      }
+
+      // if resume exists, open it
+      window.open(downloadUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      console.error("Resume view error: ", err);
+      setUploadMessage(err?.message || "Failed to get resume download link.");
+    } finally {
+      setViewing(false);
     }
   };
 
@@ -215,39 +286,50 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
             </div>
           </section>
 
-          {/* Resume Upload Section */}
+          {/* Resume Upload/View Section */}
           <section className="info-section">
             <h2>Resume</h2>
             <div className="resume-section">
-              <div className="demo-notice">
-                <p><strong>Note:</strong> Currently accepts plain text (.txt) files only. PDF parsing will be added later.</p>
-              </div>
 
               <form onSubmit={handleResumeUpload} className="resume-form">
                 <div className="file-input-group">
                   <label htmlFor="resume-upload" className="file-label">
                     <span className="upload-icon">📄</span>
-                    <span>Select Resume (Plain Text .txt file)</span>
+                    <span>Select Resume (PDF or DOC/DOCX)</span>
                   </label>
                   <input
                     type="file"
                     id="resume-upload"
-                    accept=".txt"
+                    accept=".pdf, .doc, .docx"
                     onChange={handleResumeChange}
                     className="file-input"
                   />
-                  {resumeFile && <p className="selected-file">{resumeFile.name}</p>}
+                  {resumeFile && (
+                    <p className="selected-file">{resumeFile.name}</p>
+                  )}
                 </div>
                 <button
                   type="submit"
                   className="btn btn-primary"
                   disabled={!resumeFile || uploading}
                 >
-                  {uploading ? 'Processing Resume...' : 'Upload & Analyze Resume'}
+                  {uploading ? "Uploading..." : "Upload Resume"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={handleResumeView}
+                  disabled={uploading || viewing}
+                >
+                  {viewing ? "Opening..." : "View / Download Resume"}
                 </button>
               </form>
               {uploadMessage && (
-                <div className={`message ${uploadMessage.includes('successfully') ? 'success' : 'error'}`}>
+                <div
+                  className={`message ${
+                    uploadMessage.includes("successfully") ? "success" : "error"
+                  }`}
+                >
                   {uploadMessage}
                 </div>
               )}
@@ -372,12 +454,16 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
                   <div key={job.id} className="job-card">
                     <div className="job-header">
                       <h3>{job.title}</h3>
-                      <button className="btn btn-outline btn-sm">Apply Now</button>
+                      <button className="btn btn-outline btn-sm">
+                        Apply Now
+                      </button>
                     </div>
                     <div className="job-meta">
                       <span className="job-type">{job.type}</span>
                       <span className="job-field">{job.field}</span>
-                      {job.location && <span className="job-location">{job.location}</span>}
+                      {job.location && (
+                        <span className="job-location">{job.location}</span>
+                      )}
                     </div>
                     <p className="job-description">{job.description}</p>
                     {job.skills && job.skills.length > 0 && (
