@@ -6,6 +6,8 @@ import resolvers from './graphql/resolvers.js';
 import authRouter from './routes/auth.js';
 import { authenticate } from './middleware/auth.js';
 import session from 'express-session';
+import resumeRouter from "./routes/resume.js";
+
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -31,13 +33,19 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+      // Allow cross-origin fetches in development. In production set secure: true.
+      sameSite: 'lax',
+      secure: false
     },
   })
 );
 
 // Public routes for authentication
 app.use('/auth', authRouter);
+
+app.use("/resume", authenticate, resumeRouter);
+
 
 // Protect everything below with authenticate
 // app.use(authenticate); // this doesn't work cause we need routes even when not signed in
