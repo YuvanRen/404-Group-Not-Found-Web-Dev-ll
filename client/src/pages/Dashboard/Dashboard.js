@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../../graphql/client';
 import { GET_JOBS } from '../../graphql/queries';
@@ -15,10 +15,14 @@ function Dashboard() {
   const [filters, setFilters] = useState({
     type: '',
     field: '',
+    searchTerm: '',
+    location: '',
+    skills: [],
+    active: true 
   });
+  const dTimeout = useRef(null);
 
   useEffect(() => {
-    // Get user from localStorage
     const userData = localStorage.getItem('user');
     if (!userData) {
       navigate('/login');
@@ -30,13 +34,32 @@ function Dashboard() {
     loadJobs();
   }, [navigate]);
 
-  const loadJobs = async (jobFilters = {}) => {
+  const loadJobs = async (jobFilters = filters, keepScroll = false) => {
     try {
+      const scrollPosition = keepScroll ? window.scrollY : 0;
+      setLoading(true);
       setError('');
+      
+      const cleanFilters = {};
+      
+      if (jobFilters.type) cleanFilters.type = jobFilters.type;
+      if (jobFilters.field) cleanFilters.field = jobFilters.field;
+      if (jobFilters.searchTerm) cleanFilters.searchTerm = jobFilters.searchTerm;
+      if (jobFilters.location) cleanFilters.location = jobFilters.location;
+      if (jobFilters.skills && jobFilters.skills.length > 0) {
+        cleanFilters.skills = jobFilters.skills;
+      }
+      if (jobFilters.active !== undefined) {
+        cleanFilters.active = jobFilters.active;
+      }
+      
       const data = await client.request(GET_JOBS, {
-        filters: jobFilters,
+        filters: cleanFilters,
       });
       setJobs(data.getJobs);
+      if (keepScroll) {
+        setTimeout(() => window.scrollTo(0, scrollPosition), 0);
+      }
     } catch (err) {
       const errorMessage = err.message || 'Failed to load jobs. Please try again.';
       setError(errorMessage);
@@ -51,12 +74,42 @@ function Dashboard() {
   };
 
   const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    
+    if (name === 'clearAll') {
+      const resetFilters = {
+        type: '',
+        field: '',
+        searchTerm: '',
+        location: '',
+        skills: [],
+        active: true
+      };
+      setFilters(resetFilters);
+      loadJobs(resetFilters, true);
+      return;
+    }
+    
     const newFilters = {
       ...filters,
-      [e.target.name]: e.target.value,
+      [name]: value,
     };
+    
     setFilters(newFilters);
-    loadJobs(newFilters);
+    
+    if (dTimeout.current) {
+      clearTimeout(dTimeout.current);
+    }
+    
+    const timeoutD = name === 'searchTerm' || name === 'field' || name === 'location';
+    
+    if (timeoutD) {
+      dTimeout.current = setTimeout(() => {
+        loadJobs(newFilters, true);
+      }, 500);
+    } else {
+      loadJobs(newFilters, true);
+    }
   };
 
   const handleLogout = () => {

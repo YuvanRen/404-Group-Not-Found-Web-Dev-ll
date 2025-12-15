@@ -5,6 +5,7 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
   const [resumeFile, setResumeFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
+  const [skillInput, setSkillInput] = useState('');
 
   const handleResumeChange = (e) => {
     const file = e.target.files?.[0];
@@ -14,13 +15,13 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
         setUploadMessage('Please upload a PDF or document file');
         return;
       }
-      
+
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         setUploadMessage('File size must be less than 5MB');
         return;
       }
-      
+
       setResumeFile(file);
       setUploadMessage('');
     }
@@ -39,7 +40,7 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
       // For now, we'll just show a success message
       setUploadMessage('Resume uploaded successfully!');
       setResumeFile(null);
-      
+
       // Reset file input
       const fileInput = document.getElementById('resume-upload');
       if (fileInput) fileInput.value = '';
@@ -49,6 +50,43 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleSkillAdd = (e) => {
+    if (e.key === 'Enter' && skillInput.trim()) {
+      e.preventDefault();
+      const skill = skillInput.trim();
+
+      if (!filters.skills.includes(skill)) {
+        onFilterChange({
+          target: {
+            name: 'skills',
+            value: [...filters.skills, skill]
+          }
+        });
+      }
+
+      setSkillInput('');
+    }
+  };
+
+  const handleSkillRemove = (skillToRemove) => {
+    onFilterChange({
+      target: {
+        name: 'skills',
+        value: filters.skills.filter(skill => skill !== skillToRemove)
+      }
+    });
+  };
+
+  const handleClearFilters = () => {
+    onFilterChange({
+      target: {
+        name: 'clearAll',
+        value: true
+      }
+    });
+    setSkillInput('');
   };
 
   return (
@@ -122,8 +160,23 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
 
           {/* Job Postings Section */}
           <section className="jobs-section">
-            <h2>Available Jobs</h2>
-            
+            <div className="section-header">
+              <h2>Available Jobs</h2>
+              <button onClick={handleClearFilters} className="btn btn-outline btn-sm">
+                Clear Filters
+              </button>
+            </div>
+            <div className="search-container">
+              <input
+                type="text"
+                name="searchTerm"
+                value={filters.searchTerm || ''}
+                onChange={onFilterChange}
+                placeholder="Search job titles and descriptions..."
+                className="search-input"
+              />
+            </div>
+
             {/* Filters */}
             <div className="filters-container">
               <div className="filter-group">
@@ -131,7 +184,7 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
                 <select
                   id="type"
                   name="type"
-                  value={filters.type}
+                  value={filters.type || ''}
                   onChange={onFilterChange}
                 >
                   <option value="">All Types</option>
@@ -147,10 +200,51 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
                   type="text"
                   id="field"
                   name="field"
-                  value={filters.field}
+                  value={filters.field || ''}
                   onChange={onFilterChange}
                   placeholder="e.g., Software, Marketing"
                 />
+              </div>
+
+              <div className="filter-group">
+                <label htmlFor="location">Location</label>
+                <input
+                  type="text"
+                  id="location"
+                  name="location"
+                  value={filters.location || ''}
+                  onChange={onFilterChange}
+                  placeholder="e.g., New York, Remote"
+                />
+              </div>
+
+              <div className="filter-group filter-group-skills">
+                <label htmlFor="skills">Skills (press Enter to add)</label>
+                <input
+                  type="text"
+                  id="skills"
+                  value={skillInput}
+                  onChange={(e) => setSkillInput(e.target.value)}
+                  onKeyDown={handleSkillAdd}
+                  placeholder="JavaScript, React..."
+                />
+                {filters.skills && filters.skills.length > 0 && (
+                  <div className="selected-skills">
+                    {filters.skills.map((skill, idx) => (
+                      <span key={idx} className="skill-chip">
+                        {skill}
+                        <button
+                          type="button"
+                          onClick={() => handleSkillRemove(skill)}
+                          className="skill-remove"
+                          aria-label="Remove skill"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -164,6 +258,9 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
               </div>
             ) : (
               <div className="jobs-list">
+                <div className="jobs-count">
+                  {jobs.length} {jobs.length === 1 ? 'job' : 'jobs'} found
+                </div>
                 {jobs.map((job) => (
                   <div key={job.id} className="job-card">
                     <div className="job-header">
@@ -173,7 +270,7 @@ function JobSeekerDashboard({ user, jobs, filters, loading, error, onFilterChang
                     <div className="job-meta">
                       <span className="job-type">{job.type}</span>
                       <span className="job-field">{job.field}</span>
-                      {job.location && <span className="job-location">{job.location}</span>}
+                      {job.location && <span className="job-location">📍 {job.location}</span>}
                     </div>
                     <p className="job-description">{job.description}</p>
                     {job.skills && job.skills.length > 0 && (
