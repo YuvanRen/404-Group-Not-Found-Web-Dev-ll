@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   presignResumeUpload,
   uploadResumeToS3,
@@ -25,6 +25,8 @@ function JobSeekerDashboard({
   const [matchingError, setMatchingError] = useState('');
   const [extractedSkills, setExtractedSkills] = useState([]);
   const [apiKey, setApiKey] = useState(localStorage.getItem('googleAiApiKey') || '');
+  const [existingResumeName, setExistingResumeName] = useState('');
+
 
   const handleApiKeyChange = (e) => {
     const newApiKey = e.target.value;
@@ -253,6 +255,25 @@ function JobSeekerDashboard({
     setSkillInput('');
   };
 
+  useEffect(() => {
+    const checkExistingResume = async () => {
+      try {
+        const { downloadUrl } = await getResumeDownloadUrl();
+        if (!downloadUrl) return;
+
+        const url = new URL(downloadUrl);
+        const pathname = url.pathname;
+        const filename = pathname.substring(pathname.lastIndexOf('/') + 1);
+
+        setExistingResumeName(decodeURIComponent(filename));
+      } catch {
+
+      }
+    };
+
+    checkExistingResume();
+  }, []);
+
   return (
     <div className="job-seeker-dashboard">
       <div className="dashboard-header">
@@ -327,6 +348,11 @@ function JobSeekerDashboard({
           {/* Resume Upload/View Section */}
           <section className="info-section">
             <h2>Resume</h2>
+            {existingResumeName && (
+              <p style={{ fontWeight: 'bold', marginTop: '8px', marginBottom: '16px' }}>
+                Current resume: {existingResumeName}
+              </p>
+            )}
             <div className="resume-section">
 
               <form onSubmit={handleResumeUpload} className="resume-form">
