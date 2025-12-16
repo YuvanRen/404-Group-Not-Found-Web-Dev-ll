@@ -253,6 +253,7 @@ function EditJobForm({ job, onSave, onCancel }) {
     skills: job.skills.join(', '),
     type: job.type,
     location: job.location || '',
+    applyLink: job.applyLink || '',
     active: job.active
   });
 
@@ -284,6 +285,7 @@ function EditJobForm({ job, onSave, onCancel }) {
         skills: skillsArray,
         type: formData.type,
         location: formData.location,
+        applyLink: formData.applyLink,
         active: formData.active
       };
 
@@ -342,6 +344,18 @@ function EditJobForm({ job, onSave, onCancel }) {
           name="location"
           value={formData.location}
           onChange={handleChange}
+        />
+      </div>
+
+      <div className="form-group">
+        <label>Application Link</label>
+        <input
+          type="url"
+          name="applyLink"
+          value={formData.applyLink}
+          onChange={handleChange}
+          placeholder="https://company.com/apply"
+          required
         />
       </div>
 

@@ -18,6 +18,7 @@ const schema = buildSchema(`
     skills: [String!]!
     type: String!
     location: String
+    applyLink: String!
     createdAt: String!
     active: Boolean!
     updatedAt: String
@@ -48,6 +49,7 @@ const schema = buildSchema(`
     skills: [String!]
     type: String
     location: String
+    applyLink: String!
   }
 
   input JobUpdateInput {
@@ -58,6 +60,7 @@ const schema = buildSchema(`
     type: String
     location: String
     active: Boolean
+    applyLink: String!
   }
   
   input JobFilters {

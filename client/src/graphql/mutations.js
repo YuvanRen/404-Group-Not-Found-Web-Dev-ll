@@ -39,6 +39,7 @@ export const CREATE_JOB = `
       skills
       type
       location
+      applyLink
       createdAt
       active
     }

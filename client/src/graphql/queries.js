@@ -21,6 +21,7 @@ export const GET_JOBS = `
       skills
       type
       location
+      applyLink
       createdAt
       active
     }
@@ -38,6 +39,7 @@ export const GET_JOB = `
       skills
       type
       location
+      applyLink
       createdAt
       active
     }

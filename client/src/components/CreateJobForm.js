@@ -11,6 +11,7 @@ function CreateJobForm({ employerId, onJobCreated }) {
     skills: '',
     type: 'full-time',
     location: '',
+    applyLink: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -61,6 +62,16 @@ function CreateJobForm({ employerId, onJobCreated }) {
       newErrors.location = 'Location must be at least 2 characters';
     }
 
+    if (!formData.applyLink.trim()) {
+      newErrors.applyLink = 'Application link is required';
+    } else {
+      try {
+        new URL(formData.applyLink);
+      } catch {
+        newErrors.applyLink = 'Please enter a valid URL';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -102,6 +113,7 @@ function CreateJobForm({ employerId, onJobCreated }) {
         skills: '',
         type: 'full-time',
         location: '',
+        applyLink: '',
       });
 
       // Notify parent component
@@ -193,6 +205,21 @@ function CreateJobForm({ employerId, onJobCreated }) {
           {errors.location && <span className="field-error">{errors.location}</span>}
         </div>
 
+        <div className="form-group">
+          <label htmlFor="applyLink">Application Link *</label>
+          <input
+            type="url"
+            id="applyLink"
+            name="applyLink"
+            value={formData.applyLink}
+            onChange={handleChange}
+            className={errors.applyLink ? 'input-error' : ''}
+            placeholder="https://company.com/apply or mailto:jobs@company.com"
+            required
+          />
+          {errors.applyLink && <span className="field-error">{errors.applyLink}</span>}
+          <small>Link where candidates can apply</small>
+        </div>
         <div className="form-group">
           <label htmlFor="description">Job Description *</label>
           <textarea

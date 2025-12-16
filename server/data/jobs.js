@@ -12,6 +12,7 @@ export async function createJob(data) {
     skills: data.skills || [],
     type: data.type || "full-time",
     location: data.location || "",
+    applyLink: data.applyLink,
     active: true,
     createdAt: new Date().toISOString()
   };
@@ -21,6 +22,7 @@ export async function createJob(data) {
   return {
     id: result.insertedId.toString(),
     employerId: job.employerId.toString(),
+    applyLink: job.applyLink,
     ...job
   };
 }
@@ -39,6 +41,7 @@ export async function getJobById(id) {
     skills: job.skills,
     type: job.type,
     location: job.location,
+    applyLink: job.applyLink,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
     active: job.active
@@ -72,6 +75,7 @@ export async function getJobs(filters = {}) {
     skills: job.skills,
     type: job.type,
     location: job.location,
+    applyLink: job.applyLink,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
     active: job.active
@@ -106,6 +110,7 @@ export async function updateJob(id, data) {
     skills: job.skills,
     type: job.type,
     location: job.location,
+    applyLink: job.applyLink,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
     active: job.active
@@ -127,6 +132,7 @@ export async function deleteJob(id) {
     skills: job.skills,
     type: job.type,
     location: job.location,
+    applyLink: job.applyLink,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
     active: job.active

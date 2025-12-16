@@ -107,9 +107,9 @@ function JobSeekerDashboard({
         matchedSkills: matchedSkills.slice(0, 5)
       };
     })
-    .filter(job => job.matchScore > 20)
-    .sort((a, b) => b.matchScore - a.matchScore)
-    .slice(0, 10);
+      .filter(job => job.matchScore > 20)
+      .sort((a, b) => b.matchScore - a.matchScore)
+      .slice(0, 10);
   };
 
   const handleResumeUpload = async (e) => {
@@ -156,7 +156,7 @@ function JobSeekerDashboard({
     } finally {
       setUploading(false);
     }
-    
+
 
   };
 
@@ -190,9 +190,9 @@ function JobSeekerDashboard({
         throw new Error("No download URL returned");
       }
 
-      const probeRes = await fetch(downloadUrl, { 
-        method: "GET", 
-        headers: { Range: "bytes=0-0" }, 
+      const probeRes = await fetch(downloadUrl, {
+        method: "GET",
+        headers: { Range: "bytes=0-0" },
         redirect: "follow"
       });
 
@@ -364,9 +364,8 @@ function JobSeekerDashboard({
               </form>
               {uploadMessage && (
                 <div
-                  className={`message ${
-                    uploadMessage.includes("successfully") ? "success" : "error"
-                  }`}
+                  className={`message ${uploadMessage.includes("successfully") ? "success" : "error"
+                    }`}
                 >
                   {uploadMessage}
                 </div>
@@ -433,7 +432,12 @@ function JobSeekerDashboard({
                                 </div>
                               </div>
                             )}
-                            <button className="btn btn-outline btn-sm">Apply Now</button>
+                            <button
+                              className="btn btn-outline btn-sm"
+                              onClick={() => window.open(job.applyLink, '_blank', 'noopener,noreferrer')}
+                            >
+                              Apply Now
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -551,7 +555,10 @@ function JobSeekerDashboard({
                   <div key={job.id} className="job-card">
                     <div className="job-header">
                       <h3>{job.title}</h3>
-                      <button className="btn btn-outline btn-sm">
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => window.open(job.applyLink, '_blank', 'noopener,noreferrer')}
+                      >
                         Apply Now
                       </button>
                     </div>
