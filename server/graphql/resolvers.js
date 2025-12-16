@@ -100,7 +100,17 @@ const resolvers = {
     if (!existingJob) {
       throw new Error("Job not found");
     }
-    return await jobData.updateJob(id, input);
+    try {
+      return await jobData.updateJob(id, input);
+    } catch (err) {
+      if (err?.message === "Job not found") {
+        const latest = await jobData.getJobById(id);
+        if (latest) return latest;
+
+        return existingJob;
+      }
+      throw err;
+    }
   },
 
   deleteJob: async ({ id }) => {
@@ -108,7 +118,14 @@ const resolvers = {
     if (!existingJob) {
       throw new Error("Job not found");
     }
-    return await jobData.deleteJob(id);
+    try {
+      return await jobData.deleteJob(id);
+    } catch (err) {
+      if (err?.message === "Job not found") {
+        return existingJob;
+      }
+      throw err;
+    }
   },
 };
 
