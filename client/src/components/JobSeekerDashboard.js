@@ -6,6 +6,9 @@ import {
 } from "../utils/resumeApi";
 import './JobSeekerDashboard.css';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { extractTextFromDoc } from '../utils/docxExtracter';
+import { extractTextFromPDF } from '../utils/pdfExtracter';
+
 
 
 function JobSeekerDashboard({
@@ -74,7 +77,7 @@ function JobSeekerDashboard({
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-      const prompt = `Extract a list of key technical and soft skills and any keywords from the following resume content:\n\n${fileContent}\n\nProvide the skills as a comma-separated list.`;
+      const prompt = `Extract a list of key technical and soft skills and any keywords from the following resume content:\n\n${fileContent}\n\nProvide the skills as a comma-separated list. Only list the skills and keywords, nothing else.`;
 
       const result = await model.generateContent(prompt);
       const response = result.response;
@@ -114,6 +117,29 @@ function JobSeekerDashboard({
       .slice(0, 10);
   };
 
+  const analyzeResume = async (file) => {
+    try {
+      let textContent = '';
+
+      // Extract text based on file type
+      if (file.type === 'application/pdf') {
+        textContent = await extractTextFromPDF(file);
+      } else if (file.type.includes('word') || file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
+        textContent = await extractTextFromDoc(file);
+      } else {
+        throw new Error('Unsupported file type. Please upload a PDF or Word document.');
+      }
+
+      // Extract skills using AI
+      const skills = await extractSkillsFromResume(textContent);
+      setExtractedSkills(skills);
+
+    } catch (error) {
+      console.error('Error analyzing resume:', error);
+      throw new Error('Failed to analyze resume: ' + error.message);
+    }
+  };
+
   const handleResumeUpload = async (e) => {
     e.preventDefault();
     if (!resumeFile) {
@@ -143,12 +169,14 @@ function JobSeekerDashboard({
         presign.contentType
       );
 
-      setUploadMessage("Resume uploaded successfully!");
+      setUploadMessage("Resume uploaded successfully! Analyzing resume...");
+      await analyzeResume(resumeFile);
+      setUploadMessage("Resume analyzed successfully!");
+
       setResumeFile(null);
 
       // Reset file input
-      const fileInput = document.getElementById('resume-upload');
-      if (fileInput) fileInput.value = '';
+      document.getElementById("resume-upload").value = "";
     } catch (err) {
       console.error("Resume upload error: ", err);
       setUploadMessage(
@@ -450,11 +478,9 @@ function JobSeekerDashboard({
                               <div className="matched-skills">
                                 <span className="matched-label">Your Matching Skills:</span>
                                 <div className="matched-skills-list">
-                                  {job.matchedSkills.map((skill, skillIdx) => (
-                                    <span key={skillIdx} className="matched-skill-tag">
-                                      {skill}
-                                    </span>
-                                  ))}
+                                  <span className="matched-skill-tag">
+                                    {job.matchedSkills.join(', ')}
+                                  </span>
                                 </div>
                               </div>
                             )}
