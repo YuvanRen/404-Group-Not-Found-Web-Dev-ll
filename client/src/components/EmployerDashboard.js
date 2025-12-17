@@ -230,7 +230,6 @@ function EmployerDashboard({ user, jobs, loading, error, onJobCreated, onJobUpda
                         )}
                         <div className="job-footer">
                           <span className="job-posted">Posted: {new Date(job.createdAt).toLocaleDateString()}</span>
-                          <span className="job-applicants">0 Applicants</span>
                         </div>
                       </>
                     )}

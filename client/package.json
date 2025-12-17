@@ -14,11 +14,11 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "mammoth": "^1.4.20",
-    "pdfjs-dist": "^2.14.314",
     "axios": "^1.6.2",
     "graphql": "^16.8.1",
     "graphql-request": "^6.1.0",
+    "mammoth": "^1.11.0",
+    "pdfjs-dist": "^2.16.105",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",

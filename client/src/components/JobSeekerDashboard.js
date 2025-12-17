@@ -173,6 +173,8 @@ function JobSeekerDashboard({
       await analyzeResume(resumeFile);
       setUploadMessage("Resume analyzed successfully!");
 
+      setExistingResumeName(resumeFile.name);
+
       setResumeFile(null);
 
       // Reset file input
@@ -201,6 +203,13 @@ function JobSeekerDashboard({
     try {
       const matched = matchJobsWithSkills(extractedSkills, jobs);
       setMatchedJobs(matched);
+
+      onFilterChange({
+        target: {
+          name: 'skills',
+          value: extractedSkills
+        }
+      });
     } catch (err) {
       setMatchingError('Failed to find job matches. Please try again.');
       console.error('Job matching error:', err);

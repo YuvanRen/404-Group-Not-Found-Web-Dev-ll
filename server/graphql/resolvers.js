@@ -2,9 +2,23 @@ import * as userData from "../data/users.js";
 import * as jobData from "../data/jobs.js";
 import crypto from "crypto";
 
-// Simple token generation
 function generateToken(userId) {
   return crypto.randomBytes(32).toString("hex");
+}
+
+function requireAuth(context) {
+  if (!context.user) {
+    throw new Error("You must be logged in to perform this action");
+  }
+  return context.user;
+}
+
+function requireEmployer(context) {
+  const user = requireAuth(context);
+  if (user.userType !== "employer") {
+    throw new Error("Only employers can perform this action");
+  }
+  return user;
 }
 
 const resolvers = {
@@ -66,11 +80,19 @@ const resolvers = {
     }
   },
 
-  login: async ({ input }) => {
+  login: async ({ input }, context) => {
     const user = await userData.validateLogin(input.email, input.password);
 
     if (!user) {
       throw new Error("Invalid email or password");
+    }
+
+    if (context.req?.session) {
+      context.req.session.user = {
+        id: user.id,
+        name: user.name,
+        userType: user.userType,
+      };
     }
 
     const token = generateToken(user.id);
@@ -81,7 +103,14 @@ const resolvers = {
     };
   },
 
-  createJob: async ({ input }) => {
+  createJob: async ({ input }, context) => {
+    const user = requireEmployer(context);
+
+    // Ensure the employer can only create jobs for themselves
+    if (input.employerId !== user.id) {
+      throw new Error("You can only create jobs for your own account");
+    }
+
     const employer = await userData.getUserById(input.employerId);
     if (!employer) {
       throw new Error("Employer not found");
@@ -95,29 +124,44 @@ const resolvers = {
     return job;
   },
 
-  updateJob: async ({ id, input }) => {
+  updateJob: async ({ id, input }, context) => {
+    const user = requireEmployer(context);
+
     const existingJob = await jobData.getJobById(id);
     if (!existingJob) {
       throw new Error("Job not found");
     }
+
+    // Ensure the employer owns this job
+    if (existingJob.employerId !== user.id) {
+      throw new Error("You can only update your own job postings");
+    }
+
     try {
       return await jobData.updateJob(id, input);
     } catch (err) {
       if (err?.message === "Job not found") {
         const latest = await jobData.getJobById(id);
         if (latest) return latest;
-
         return existingJob;
       }
       throw err;
     }
   },
 
-  deleteJob: async ({ id }) => {
+  deleteJob: async ({ id }, context) => {
+    const user = requireEmployer(context);
+
     const existingJob = await jobData.getJobById(id);
     if (!existingJob) {
       throw new Error("Job not found");
     }
+
+    // Ensure the employer owns this job
+    if (existingJob.employerId !== user.id) {
+      throw new Error("You can only delete your own job postings");
+    }
+
     try {
       return await jobData.deleteJob(id);
     } catch (err) {

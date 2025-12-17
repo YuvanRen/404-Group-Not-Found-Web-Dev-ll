@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "dependencies": {
     "@google/genai": "^1.33.0",
     "@google/generative-ai": "^0.24.1",

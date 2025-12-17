@@ -60,7 +60,7 @@ const schema = buildSchema(`
     type: String
     location: String
     active: Boolean
-    applyLink: String!
+    applyLink: String
   }
   
   input JobFilters {
